@@ -1,0 +1,41 @@
+VER = '0.95';
+
+LEVEL_UP_TRESHOLD = 10;
+STARTING_LEVEL_MAX = 15;
+
+WELL_LEFT = 130;
+WELL_TOP = 34;
+WELL_WIDTH = 10;      
+WELL_HEIGHT = 20;
+RCOL = WELL_LEFT+(WELL_WIDTH*8)+30;
+LCOL = WELL_LEFT-30;
+
+JOY_DELAY = 5;
+{$IFDEF HOSPES}
+GAME_OVER_DELAY = 850;
+{$ELSE}
+GAME_OVER_DELAY = 385;
+{$ENDIF}
+
+CRACK_SOUND_LENGTH = 2;
+
+{$IFDEF HOSPES}
+CLEAN_COLOR = 0;
+{$ELSE}
+CLEAN_COLOR = 2;
+{$ENDIF}
+
+
+KEY_ENTER = $1C; // Keyboard Return (ENTER)
+KEY_ESC = $01; // Keyboard ESCAPE
+KEY_SPACE = $39; // Keyboard Spacebar
+KEY_RIGHT = $4D; // Keyboard Right Arrow
+KEY_LEFT = $4B; // Keyboard Left Arrow
+KEY_DOWN = $50; // Keyboard Down Arrow
+KEY_UP = $48; // Keyboard Up Arrow
+KEY_Y = $15;
+KEY_N = $31;
+KEY_P = $19;
+KEY_M = $32;
+KEY_PREVIOUS = $33;
+KEY_NEXT = $34;
