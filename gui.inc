@@ -220,13 +220,14 @@ var
 begin
     tx:=(x shl 3) + WELL_LEFT - xoff;
     ty:=(y shl 3) + WELL_TOP - yoff;
+    // fill
     NeoDrawRect(tx,ty,tx+7,ty+7,tiletype+8);
-    //upper highlight    
-    NeoDrawLineH(tx,ty,7,6);
-    NeoDrawLineV(tx,ty,7,6);
-    //lower shade
-    NeoDrawLineV(tx+7,ty,8,2);
-    NeoDrawLineH(tx,ty+7,8,2);
+    // highlight: użyj DrawBox zamiast pixel-po-pixelu
+    NeoDrawRect(tx,ty,tx+6,ty,6);      // górna krawędź (1px wysoka)
+    NeoDrawRect(tx,ty,tx,ty+6,6);      // lewa krawędź (1px szeroka)
+    // shadow:
+    NeoDrawRect(tx+7,ty,tx+7,ty+7,2);  // prawa krawędź
+    NeoDrawRect(tx,ty+7,tx+7,ty+7,2);  // dolna krawędź
 end;
 
 procedure DrawSquare(x,y,tiletype:byte);overload;
