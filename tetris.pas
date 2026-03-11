@@ -228,11 +228,9 @@ begin
                     prevX2 := tileX;
                     prevY2 := tileY;
                     nextTile := TossTile;
-                    DrawNext(18,6);
-                    DrawStats;
+                    DrawHUD;
                     SwapScreen;
-                    DrawNext(18,6);
-                    DrawStats;
+                    DrawHUD;
                     spawnTile:=false;
                 end;
 

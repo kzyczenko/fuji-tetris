@@ -419,6 +419,12 @@ begin
     end;
 end;
 
+procedure DrawHUD;
+begin
+    DrawNext(18, 6);
+    DrawStats;
+end;
+
 procedure DrawBackground;
 begin
     // ClrScr;
