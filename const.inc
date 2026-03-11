@@ -1,13 +1,14 @@
-VER = '0.95';
+VER = '0.96';
 
 LEVEL_UP_TRESHOLD = 10;
 STARTING_LEVEL_MAX = 15;
 
-WELL_LEFT = 130;
-WELL_TOP = 34;
+TILE_SIZE = 10;                                  // NOWA stała
+WELL_LEFT = 110;                                 // było 130, przesunięte bo studnia szersza
+WELL_TOP = 14;                                   // było 34, podniesione
 WELL_WIDTH = 10;      
-WELL_HEIGHT = 20;
-RCOL = WELL_LEFT+(WELL_WIDTH*8)+30;
+WELL_HEIGHT = 18;                                // było 20
+RCOL = WELL_LEFT+(WELL_WIDTH*TILE_SIZE)+10;      // było *8)+30
 LCOL = WELL_LEFT-30;
 
 JOY_DELAY = 5;
@@ -39,3 +40,21 @@ KEY_P = $19;
 KEY_M = $32;
 KEY_PREVIOUS = $33;
 KEY_NEXT = $34;
+
+speed_table: array [1..15] of byte = (
+    50,  // level 1   = 1.00s
+    46,  // level 2   = 0.92s
+    42,  // level 3   = 0.84s
+    38,  // level 4   = 0.76s
+    34,  // level 5   = 0.68s
+    29,  // level 6   = 0.58s
+    24,  // level 7   = 0.48s
+    19,  // level 8   = 0.38s
+    15,  // level 9   = 0.30s
+    12,  // level 10  = 0.24s
+    9,   // level 11  = 0.18s
+    7,   // level 12  = 0.14s
+    5,   // level 13  = 0.10s
+    3,   // level 14  = 0.06s
+    2    // level 15  = 0.04s
+);

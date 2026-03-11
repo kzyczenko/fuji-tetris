@@ -37,6 +37,7 @@ var
     rotation,prevRotation1,prevRotation2: byte;
     tileX,tileY,prevX1,prevX2,prevY1,prevY2: byte;
     key: byte;
+    actionKey: byte;
     fallcounter: byte;
     joydelay: byte;
     scoretable: array [0..3] of word = (40,100,300,1200);
@@ -233,7 +234,7 @@ begin
                 end;
 
             // this formula controls game speed based on players level
-            fallcounter := 65-(Min(level,15)*4);
+            fallcounter := speed_table[Min(level, 15)];
 
             // main steering loop
             repeat
@@ -246,23 +247,28 @@ begin
                 DrawBlock(tileX,tileY,currentTile,rotation,1);
                 dec(fallcounter);
                 GetUserInput;
-                if key<>0 then
-                    begin
-                        prevX1 := tileX;
-                        prevY1 := tileY;
-                        prevRotation1 := rotation;
-                        prevTile1 := currentTile;
-                        if (key=KEY_LEFT) and CanMoveBlock(tileX-1,tileY,currentTile,rotation) then tileX := tileX-1;
-                        if (key=KEY_RIGHT) and CanMoveBlock(tileX+1,tileY,currentTile,rotation) then tileX := tileX+1;
-                        if (key=KEY_SPACE) and CanMoveBlock(tileX,tileY,currentTile,TPred(rotation)) then rotation := TPred(rotation);
-                        if (key=KEY_ENTER) and CanMoveBlock(tileX,tileY,currentTile,TSucc(rotation)) then rotation := TSucc(rotation);
-                        if (key=KEY_UP) then FastFall; // fall to bottom
-                        if (key=KEY_DOWN) then fallcounter := 0; // fall one row
-                        if (key=KEY_P) then PauseGame; // Pause
-                        if (key=KEY_M) then ToggleMusic; // Music on/off
-                        if (key=KEY_NEXT) and music_on then NextTune;
-                        if (key=KEY_PREVIOUS) and music_on then PreviousTune;
-                    end;
+                if key<>0 then begin
+                    prevX1 := tileX;
+                    prevY1 := tileY;
+                    prevRotation1 := rotation;
+                    prevTile1 := currentTile;
+                    if (key=KEY_LEFT) and CanMoveBlock(tileX-1,tileY,currentTile,rotation) then tileX := tileX-1;
+                    if (key=KEY_RIGHT) and CanMoveBlock(tileX+1,tileY,currentTile,rotation) then tileX := tileX+1;
+                    if (key=KEY_UP) then FastFall; // fall to bottom
+                    if (key=KEY_DOWN) then fallcounter := 0; // fall one row
+                    if (key=KEY_P) then PauseGame; // Pause
+                    if (key=KEY_M) then ToggleMusic; // Music on/off
+                    if (key=KEY_NEXT) and music_on then NextTune;
+                    if (key=KEY_PREVIOUS) and music_on then PreviousTune;
+                end;
+                if actionKey<>0 then begin
+                    prevX1 := tileX;
+                    prevY1 := tileY;
+                    prevRotation1 := rotation;
+                    prevTile1 := currentTile;
+                    if (actionKey=KEY_SPACE) and CanMoveBlock(tileX,tileY,currentTile,TPred(rotation)) then rotation := TPred(rotation);
+                    if (actionKey=KEY_ENTER) and CanMoveBlock(tileX,tileY,currentTile,TSucc(rotation)) then rotation := TSucc(rotation);
+                end;
                 if crackCounter>0 then begin
                     dec(crackCounter);
                 end;
@@ -310,7 +316,7 @@ begin
             GetUserInput;
             Pause(1);
             inc(counter);
-        until (counter=GAME_OVER_DELAY) or (key=KEY_ENTER) or (key=KEY_SPACE) or (key=KEY_ESC);
+        until (counter=GAME_OVER_DELAY) or (actionKey=KEY_ENTER) or (actionKey=KEY_SPACE) or (key=KEY_ESC);
         SNDH_StopTuneISR;
         key := 0;
 

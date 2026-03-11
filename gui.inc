@@ -193,19 +193,15 @@ begin
 end;
 
 procedure DrawSquare(x,y,tiletype,xoff,yoff:byte);overload;
-var 
-    tx,ty:word;
+var tx,ty:word;
 begin
-    tx:=(x shl 3) + WELL_LEFT - xoff;
-    ty:=(y shl 3) + WELL_TOP - yoff;
-    // fill
-    NeoDrawRect(tx,ty,tx+7,ty+7,tiletype+8);
-    // highlight: użyj DrawBox zamiast pixel-po-pixelu
-    NeoDrawRect(tx,ty,tx+6,ty,6);      // górna krawędź (1px wysoka)
-    NeoDrawRect(tx,ty,tx,ty+6,6);      // lewa krawędź (1px szeroka)
-    // shadow:
-    NeoDrawRect(tx+7,ty,tx+7,ty+7,2);  // prawa krawędź
-    NeoDrawRect(tx,ty+7,tx+7,ty+7,2);  // dolna krawędź
+    tx:=(x * TILE_SIZE) + WELL_LEFT - xoff;
+    ty:=(y * TILE_SIZE) + WELL_TOP - yoff;
+    NeoDrawRect(tx, ty, tx+TILE_SIZE-1, ty+TILE_SIZE-1, tiletype+8);
+    NeoDrawRect(tx, ty, tx+TILE_SIZE-2, ty, 6);
+    NeoDrawRect(tx, ty, tx, ty+TILE_SIZE-2, 6);
+    NeoDrawRect(tx+TILE_SIZE-1, ty, tx+TILE_SIZE-1, ty+TILE_SIZE-1, 2);
+    NeoDrawRect(tx, ty+TILE_SIZE-1, tx+TILE_SIZE-1, ty+TILE_SIZE-1, 2);
 end;
 
 procedure DrawSquare(x,y,tiletype:byte);overload;
@@ -216,17 +212,17 @@ end;
 procedure ClearSquare(x,y:byte);
 var tx,ty:word;
 begin
-    tx:=x shl 3 + WELL_LEFT;
-    ty:=y shl 3 + WELL_TOP;
-    NeoDrawRect(tx,ty,tx+7,ty+7,2);
+    tx:=x * TILE_SIZE + WELL_LEFT;
+    ty:=y * TILE_SIZE + WELL_TOP;
+    NeoDrawRect(tx, ty, tx+TILE_SIZE-1, ty+TILE_SIZE-1, 2);
 end;
 
 procedure ClearSquarePhy(x,y:byte);
 var tx,ty:word;
 begin
-    tx:=x shl 3 + WELL_LEFT;
-    ty:=y shl 3 + WELL_TOP;
-    NeoDrawRectPhy(tx,ty,tx+7,ty+7,2);
+    tx:=x * TILE_SIZE + WELL_LEFT;
+    ty:=y * TILE_SIZE + WELL_TOP;
+    NeoDrawRectPhy(tx, ty, tx+TILE_SIZE-1, ty+TILE_SIZE-1, 2);
 end;
 
 procedure ClearNext;
@@ -306,8 +302,8 @@ end;
 procedure ShowModal(s:string);
 var s2:string;
 begin
-    NeoDrawRect(WELL_LEFT+6,WELL_TOP+58,WELL_LEFT+(WELL_WIDTH*8)-7,WELL_TOP+82,0);
-    Box(WELL_LEFT+8,WELL_TOP+60,WELL_LEFT+(WELL_WIDTH*8)-9,WELL_TOP+80,4,4);
+    NeoDrawRect(WELL_LEFT+6,WELL_TOP+58,WELL_LEFT+(WELL_WIDTH*TILE_SIZE)-7,WELL_TOP+82,0);
+    Box(WELL_LEFT+8,WELL_TOP+60,WELL_LEFT+(WELL_WIDTH*TILE_SIZE)-9,WELL_TOP+80,4,4);
     move(s[11],s2[1],10);
     SetLength(s,10);
     SetLength(s2,10);
@@ -424,16 +420,16 @@ end;
 procedure DrawGui;
 begin
 {$IFDEF HOSPES}
-    WellBox(WELL_LEFT,WELL_TOP,WELL_LEFT+(WELL_WIDTH*8)-1,WELL_TOP+(WELL_HEIGHT*8)-1,4,4);
+    WellBox(WELL_LEFT,WELL_TOP,WELL_LEFT+(WELL_WIDTH*TILE_SIZE)-1,WELL_TOP+(WELL_HEIGHT*TILE_SIZE)-1,4,4);
 {$ELSE}
-    Box(WELL_LEFT,WELL_TOP,WELL_LEFT+(WELL_WIDTH*8)-1,WELL_TOP+(WELL_HEIGHT*8)-1,4,4);
+    Box(WELL_LEFT,WELL_TOP,WELL_LEFT+(WELL_WIDTH*TILE_SIZE)-1,WELL_TOP+(WELL_HEIGHT*TILE_SIZE)-1,4,4);
 {$ENDIF}
-    Box(WELL_LEFT,WELL_TOP-20,WELL_LEFT+(WELL_WIDTH*8)-1,WELL_TOP-10,2,4);
+    Box(WELL_LEFT,WELL_TOP-20,WELL_LEFT+(WELL_WIDTH*TILE_SIZE)-1,WELL_TOP-10,2,4);
     
     Box(RCOL,WELL_TOP-20,RCOL+70,WELL_TOP+20,2,4);
     Box(RCOL+15,WELL_TOP+30,RCOL+55,WELL_TOP+66,4,4);
     Box(RCOL,WELL_TOP+76,RCOL+70,WELL_TOP+86,2,4);
-    Box(LCOL-70,WELL_TOP+86,LCOL,WELL_TOP+(WELL_HEIGHT*8)-1,2,4);
+    Box(LCOL-70,WELL_TOP+86,LCOL,WELL_TOP+(WELL_HEIGHT*TILE_SIZE)-1,2,4);
     DrawStatTiles;
 
     SetLength(s,0);
@@ -473,16 +469,17 @@ begin
         KeyPressed:=true
 end;
 
-function ReadJoy:byte;
-var b:byte;
+procedure ReadJoy(var moveKey, actionKey: byte);
+var b: byte;
 begin
-    readJoy:=0;
+    moveKey := 0;
+    actionKey := 0;
     b := joyStatus;
-    if b and 4 <> 0 then readJoy := KEY_LEFT; // left
-    if b and 8 <> 0 then readJoy := KEY_RIGHT; // right
-    if b and 1 <> 0 then readJoy := KEY_UP; // up
-    if b and 2 <> 0 then readJoy := KEY_DOWN;; // down
-    if b and 128 <> 0 then readJoy := KEY_ENTER; // butA
+    if b and 4 <> 0 then moveKey := KEY_LEFT;
+    if b and 8 <> 0 then moveKey := KEY_RIGHT;
+    if b and 1 <> 0 then moveKey := KEY_UP;
+    if b and 2 <> 0 then moveKey := KEY_DOWN;
+    if b and 128 <> 0 then actionKey := KEY_ENTER;   // FIRE = rotacja
 end;
 
 function ReadKeyboard:byte;
@@ -495,16 +492,29 @@ end;
 
 procedure GetUserInput;
 begin
-    if (KeyPressed) then key := ReadKeyboard();
-    if key = 0 then key := ReadJoy();
+    key := 0;
+    actionKey := 0;
+
+    if (KeyPressed) then begin
+        key := ReadKeyboard();
+        // Klawiatura: SPACE/ENTER to akcja, reszta to ruch
+        if (key = KEY_SPACE) or (key = KEY_ENTER) then begin
+            actionKey := key;
+            key := 0;
+        end;
+    end;
+
+    if (key = 0) and (actionKey = 0) then
+        ReadJoy(key, actionKey);
+
+    // joyDelay dotyczy TYLKO ruchu, nie rotacji
     if key = 0 then begin
         joyDelay := 0;
     end;
 
     if joyDelay = 0 then begin 
-        if key <> 0 then begin
+        if key <> 0 then
             joyDelay := JOY_DELAY;
-        end;
     end else begin  
         Dec(joyDelay);
         key := 0;
@@ -534,7 +544,7 @@ var
     bufsize: longint;
 begin
     // Użyj DOKŁADNIE tych samych parametrów co SaveBackground/DrawImage
-    save_w := WELL_LEFT+(WELL_WIDTH*8)-7;   // = 193 → Trunc(193/2) = 96 bajtów na linię
+    save_w := WELL_LEFT+(WELL_WIDTH*TILE_SIZE)-7;   // = 193 → Trunc(193/2) = 96 bajtów na linię
     save_h := WELL_TOP+82;                  // = 116 → pętla 0..116 = 117 linii
 
     bufsize := longint(Trunc(save_w/2)) * longint(save_h + 1);  // 96 × 117 = 11232
@@ -580,7 +590,7 @@ begin
         inc(f);
         if f > 5 then f := 0;
         SwapScreen;
-    until (key=KEY_ENTER) or (key=KEY_SPACE) or quit;
+    until (actionKey=KEY_ENTER) or (actionKey=KEY_SPACE) or quit;
     // UpdateStartingLevel(24);
 
     level := startingLevel;

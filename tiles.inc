@@ -138,8 +138,8 @@ tiles_3: array [0..6] of pointer =   (
                                         @tile_J_3, @tile_I_3, @tile_S_3, @tile_O_0, @tile_L_3, @tile_Z_3, @tile_T_3
                                         );
 
-nextXoff: array [0..6] of byte = ( 10, 13, 10, 6, 10, 10, 10);
-nextYoff: array [0..6] of byte = ( 4, 8, 4, 4, 4, 4, 4);
+nextXoff: array [0..6] of word = ( 13, 16, 13, 8, 13, 13, 13);  // było: 10,13,10,6,10,10,10
+nextYoff: array [0..6] of word = ( 5, 10, 5, 5, 5, 5, 5);       // było: 4,8,4,4,4,4,4
 
 tiles: array [0..3] of pointer =   (@tiles_0, @tiles_1, @tiles_2, @tiles_3);
 
