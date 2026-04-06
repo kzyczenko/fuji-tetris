@@ -1,0 +1,45 @@
+name: Manual build (GHCR container)
+
+permissions:
+  contents: write
+  packages: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        required: true
+        default: "ghcr.io/ktz-st/atari-st-builder:latest"
+      tag:
+        description: "Release tag to create/update (e.g. nightly-2026-04-05)"
+        required: true
+      release_name:
+        description: "Release name"
+        required: true
+        default: "Manual build"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.image }}
+
+    steps:
+      - name: Checkout into fuji-tetris (next to deps)
+        uses: actions/checkout@v4
+        with:
+          path: ''
+
+      - name: Build TOS
+        shell: bash
+        run: |
+          set -eux
+          ppcross68k -Tatari tetris.pas
+
+      - name: Create/Update Release and upload ZIP
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: ${{ inputs.release_name }}
+          files: tetris.prg
+          generate_release_notes: true
