@@ -85,7 +85,7 @@ begin
     end;
 end;
 
-procedure TextBlt(x, y, color: word; ch: char);
+procedure TextBlt(x, y, fg_color, bg_color, mode: word; ch: char);
 begin
     asm
         movem.l   D0-D2/A0-A2,-(A7)
@@ -95,7 +95,7 @@ begin
         move.l    76(A1),84(A0)
         move.w    80(A1),88(A0)
         move.w    82(A1),82(A0)
-        move.w    #1,36(A0)
+        move.w    mode,36(A0)
         move.w    #0,54(A0)
         move.w    #0,56(A0)
         move.w    #0,58(A0)
@@ -118,8 +118,8 @@ begin
         move.w    #0,90(A0)
         move.w    #0,102(A0)
         move.w    #0,104(A0)
-        move.w    color,106(A0)
-        move.w    #0,114(A0)
+        move.w    fg_color,106(A0)
+        move.w    bg_color,114(A0)
         dc.w      $A008
         movem.l   (A7)+,D0-D2/A0-A2
     end;
@@ -131,10 +131,22 @@ var
 begin
     for i := 1 to Length(apString) do
     begin
-        TextBlt(x, y, color, apString[i]);
+        TextBlt(x, y, color, 0, 1, apString[i]);
         x:=x+6;
     end;
 end;
+
+procedure NeoDrawStringOpaque(x, y, color: word; apString: string);
+var
+    i: word;
+begin
+    for i := 1 to Length(apString) do
+    begin
+        TextBlt(x, y, color, CLEAN_COLOR, 0, apString[i]);
+        x:=x+6;
+    end;
+end;
+
 
 procedure NeoDrawPixel(x,y,color:integer);
 var
@@ -169,22 +181,22 @@ end;
 
 procedure DrawCounters;
 begin
-    NeoDrawRect(RCOL+46,WELL_TOP+20,RCOL+46+(8*6),WELL_TOP+28,CLEAN_COLOR);
-    NeoDrawRect(RCOL+46,WELL_TOP+32,RCOL+46+(8*6),WELL_TOP+38,CLEAN_COLOR);
-    NeoDrawRect(RCOL+66,WELL_TOP+98,RCOL+66+(6*2),WELL_TOP+104,CLEAN_COLOR);
-    NeoDrawRect(RCOL+68,WELL_TOP+2,RCOL+68+(6*4),WELL_TOP+8,CLEAN_COLOR);
+    NeoDrawRect(LCOL+80,WELL_TOP+12,LCOL+80+(6*2),WELL_TOP+18,CLEAN_COLOR);
+    NeoDrawRect(LCOL+46,WELL_TOP+22,LCOL+46+(8*6),WELL_TOP+28,CLEAN_COLOR);
+    NeoDrawRect(LCOL+46,WELL_TOP+32,LCOL+46+(8*6),WELL_TOP+38,CLEAN_COLOR);
+    NeoDrawRect(LCOL+68,WELL_TOP+2,LCOL+68+(6*4),WELL_TOP+8,CLEAN_COLOR);
 
     s:=GetPaddedInt(topscore,8);
-    NeoDrawString(RCOL+45,WELL_TOP+22,8,s);
-
-    s:=GetPaddedInt(score,8);
-    NeoDrawString(RCOL+45,WELL_TOP+32,8,s);
+    NeoDrawString(LCOL+45,WELL_TOP+22,8,s);
 
     s:=GetPaddedInt(level,2);
-    NeoDrawString(RCOL+66,WELL_TOP+98,8,s);
+    NeoDrawString(LCOL+80,WELL_TOP+12,8,s);
+
+    s:=GetPaddedInt(score,8);
+    NeoDrawString(LCOL+45,WELL_TOP+32,8,s);
 
     s:=GetPaddedInt(totalLines,4);
-    NeoDrawString(RCOL+68,WELL_TOP+2,8,s);
+    NeoDrawString(LCOL+68,WELL_TOP+2,8,s);
 end;
 
 procedure DrawSmallSquare(x,y: word; tiletype: byte);
@@ -195,8 +207,8 @@ end;
 procedure DrawSquareNext(x,y,tiletype,xoff,yoff:byte);overload;
 var tx,ty:word;
 begin
-    tx:=(x * TILE_SIZE) + WELL_LEFT - xoff;
-    ty:=(y * TILE_SIZE) + WELL_TOP - yoff;
+    tx:=(x * TILE_SIZE) + LCOL - xoff;
+    ty:=(y * TILE_SIZE) + WELL_TOP - yoff + 4;
     NeoDrawRect(tx-5, ty, tx+TILE_SIZE-6, ty+TILE_SIZE-1, tiletype+8);
     NeoDrawRect(tx-5, ty, tx+TILE_SIZE-7, ty, 6);
     NeoDrawRect(tx-5, ty, tx-5, ty+TILE_SIZE-2, 6);
@@ -239,7 +251,7 @@ end;
 
 procedure ClearNext;
 begin
-    NeoDrawRect(RCOL+20,WELL_TOP+62,RCOL+75,WELL_TOP+87,CLEAN_COLOR);
+    NeoDrawRect(LCOL+20,WELL_TOP+68,LCOL+75,WELL_TOP+90,CLEAN_COLOR);
 end;
 
 procedure DrawNext(xp,yp:byte);
@@ -382,7 +394,7 @@ var
 begin
     y := 0;
     for tiletype := 0 to 6 do begin
-        DrawSmallTile(LCOL-60, WELL_TOP+123+y, tiletype);
+        DrawSmallTile(LCOL+5, WELL_TOP+123+y, tiletype);
         y := y + 8;
     end;
 end;
@@ -392,17 +404,17 @@ var
     tiletype, y: byte;
 begin
     y := 0;
-    NeoDrawRect(LCOL-50,WELL_TOP+123,LCOL-10,WELL_TOP+179,CLEAN_COLOR);
+    NeoDrawRect(LCOL+20,WELL_TOP+123,LCOL+95,WELL_TOP+179,CLEAN_COLOR);
     for tiletype := 0 to 6 do begin
         str(stats[tiletype], s);
-        NeoDrawString(LCOL-10-Length(s)*6,WELL_TOP+123+y,8,s);
+        NeoDrawString(LCOL+90-Length(s)*6,WELL_TOP+123+y,8,s);
         y := y + 8;
     end;
 end;
 
 procedure DrawHUD;
 begin
-    DrawNext(16,7);
+    DrawNext(5,7);
     DrawStats;
 end;
 
@@ -410,7 +422,7 @@ procedure DrawBackground;
 begin
     // ClrScr;
     // NeoDrawRect(0,0,320,200);
-    DrawImage(0,0,96,102,@LOGO);
+    DrawImage(RCOL+10,10,96,102,@LOGO);
     s:='FIRE - rotate';
     NeoDrawString(RCOL+10,140,4,s);
     s:=chr(1)+' - drop hard';
@@ -432,29 +444,29 @@ begin
 {$ELSE}
     Box(WELL_LEFT,WELL_TOP,WELL_LEFT+(WELL_WIDTH*TILE_SIZE)-1,WELL_TOP+(WELL_HEIGHT*TILE_SIZE)-1,4,4);
 {$ENDIF}
-    Box(RCOL,WELL_TOP,RCOL+95,WELL_TOP+10,2,4); // LINES
+    Box(LCOL,WELL_TOP,LCOL+95,WELL_TOP+40,2,4); // LINES
     
-    Box(RCOL,WELL_TOP+20,RCOL+95,WELL_TOP+40,2,4); // SCORExTOP
-    Box(RCOL+20,WELL_TOP+50,RCOL+75,WELL_TOP+86,4,4); // NEXT
-    Box(RCOL+15,WELL_TOP+96,RCOL+80,WELL_TOP+106,2,4); // LEVEL
-    Box(LCOL-70,WELL_TOP+106,LCOL,WELL_TOP+(WELL_HEIGHT*TILE_SIZE)-1,2,4); // STATISTICS
+    // Box(LCOL,WELL_TOP+20,LCOL+95,WELL_TOP+40,2,4); // SCORExTOP
+    Box(LCOL+20,WELL_TOP+56,LCOL+75,WELL_TOP+90,4,4); // NEXT
+    // Box(LCOL+15,WELL_TOP+96,LCOL+80,WELL_TOP+106,2,4); // LEVEL
+    Box(LCOL,WELL_TOP+106,LCOL+95,WELL_TOP+(WELL_HEIGHT*TILE_SIZE)-1,2,4); // STATISTICS
 
     DrawStatTiles;
 
     SetLength(s,0);
 
     s := 'Lines:' ;
-    NeoDrawString(RCOL+1,WELL_TOP+2,8,s);
-    s := 'Top:' ;
-    NeoDrawString(RCOL+1,WELL_TOP+22,8,s);
-    s:='Score:';
-    NeoDrawString(RCOL+1,WELL_TOP+32,8,s);
-    s:='NEXT';
-    NeoDrawString(RCOL+35,WELL_TOP+52,8,s);
+    NeoDrawString(LCOL+1,WELL_TOP+2,8,s);
     s:='Level:';
-    NeoDrawString(RCOL+16,WELL_TOP+98,8,s);
+    NeoDrawString(LCOL+1,WELL_TOP+12,8,s);
+    s := 'Top:' ;
+    NeoDrawString(LCOL+1,WELL_TOP+22,8,s);
+    s:='Score:';
+    NeoDrawString(LCOL+1,WELL_TOP+32,8,s);
+    s:='NEXT';
+    NeoDrawString(LCOL+35,WELL_TOP+58,8,s);
     s:='Statistics';
-    NeoDrawString(LCOL-65,WELL_TOP+110,8,s);
+    NeoDrawString(LCOL+10,WELL_TOP+110,8,s);
     DrawStats;
     DrawCounters;
 end;
