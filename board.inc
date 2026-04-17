@@ -3,6 +3,7 @@ procedure NextTune; forward;
 procedure ClrBoard;
 begin
     FillChar(board, SizeOf(board), 0);
+    FillChar(rowCount, SizeOf(rowCount), 0);
 end;
 
 // procedure DrawBoard;
@@ -22,114 +23,115 @@ end;
 //     until x=WELL_WIDTH;
 // end;
 
-procedure DrawBlock(xp,yp,tiletype,rotation,option:byte);
-var x,y,i: byte;
-    tile: byte;
-    tilebody: pbyte;
+procedure ClearBlock(xp,yp,tiletype,rotation:byte);
+var x,y,i,cell: byte;
 begin
-    i := 0;
-    tilebody := getTile(tiletype,rotation);
-    y:=0;
-    repeat
-        x:=0;
-        repeat
-            tile := (tilebody+i)^;
-            if tile = 1 then 
-                case option of 
-                    0: ClearSquare(byte(x+xp),byte(y+yp));
-                    1: DrawSquare(byte(x+xp),byte(y+yp),tiletype+1);
-                    2: board[byte(x+xp),byte(y+yp)] := tiletype+1;
-                end;
-            inc(i);
-            inc(x);
-        until x=tiles_sizes[tiletype];
-        Inc(y);
-    until y=tiles_sizes[tiletype];      
+    for i := 0 to 3 do begin
+        cell := tile_cells[rotation,tiletype,i];
+        x := byte(xp + (cell and $0f));
+        y := byte(yp + (cell shr 4));
+        ClearSquare(x,y);
+    end;
+end;
+
+procedure DrawBlock(xp,yp,tiletype,rotation:byte);
+var x,y,i,cell: byte;
+begin
+    for i := 0 to 3 do begin
+        cell := tile_cells[rotation,tiletype,i];
+        x := byte(xp + (cell and $0f));
+        y := byte(yp + (cell shr 4));
+        DrawSquare(x,y,tiletype+1);
+    end;
+end;
+
+procedure CommitBlock(xp,yp,tiletype,rotation:byte);
+var x,y,i,cell: byte;
+begin
+    for i := 0 to 3 do begin
+        cell := tile_cells[rotation,tiletype,i];
+        x := byte(xp + (cell and $0f));
+        y := byte(yp + (cell shr 4));
+        if board[x,y] = 0 then
+            Inc(rowCount[y]);
+        board[x,y] := tiletype+1;
+    end;
 end;
 
 function CanMoveBlock(xp,yp,tiletype,rotation:byte): boolean;
-var x,y,i: byte;
-    tile: byte;
-    tilebody: pbyte;
+var x,y,i,cell: byte;
     canMove: boolean;
     localYp: byte;       // ← nowa lokalna zmienna
 begin
     canMove := true;
-    i := 0;
     localYp := yp;       // ← kopia parametru
-    tilebody := getTile(tiletype,rotation);
 
     if (localYp>WELL_HEIGHT) and (rotation > 0) then begin // I tile type fix
         Inc(localYp);    // ← modyfikuje TYLKO lokalną kopię
     end;
-    y:=0;
+
+    i := 0;
     repeat
-        x:=0;
-        repeat
-            tile := (tilebody+i)^;
-            if ( tile=1 ) then
-                begin
-                    if (byte(x+xp) > WELL_WIDTH-1) then canMove := false;
-                    if (byte(y+localYp) > WELL_HEIGHT-1) then canMove := false;        // ← localYp
-                    if canMove and (board[byte(x+xp),byte(y+localYp)] <> 0) then canMove := false;  // ← localYp
-                end;
-            inc(i);
-            inc(x);
-        until (x=tiles_sizes[tiletype]) or (not canMove);
-        Inc(y);
-    until (y=tiles_sizes[tiletype]) or (not canMove);
+        cell := tile_cells[rotation,tiletype,i];
+        x := byte(xp + (cell and $0f));
+        y := byte(localYp + (cell shr 4));
+        if (x > WELL_WIDTH-1) then canMove := false;
+        if (y > WELL_HEIGHT-1) then canMove := false;
+        if canMove and (board[x,y] <> 0) then canMove := false;
+        inc(i);
+    until (i=4) or (not canMove);
 
     CanMoveBlock := canMove;
 end;
 
-procedure DeleteRow(yr:byte);
+procedure DrawRowsAfterDelete(yr:byte);
 var x,y,freelines: byte;
     freerow: boolean;
 begin
-    // for x:=0 to WELL_WIDTH-1 do
-        // begin
-        //     ClearSquare(x,y);
-        // end;
-
     freelines := 0;
-    for y:=yr downto 2 do 
-        begin
-            freerow := true;
-            for x:=0 to WELL_WIDTH-1 do
-                begin
-                    board[x,y] := board[x,y-1];
-                    if ( board[x,y]=0 ) then begin
-                        ClearSquare(x,y);
-                    end else begin  
-                        DrawSquare(x,y,board[x,y]);
-                        freerow := false;
-                    end;
-                end;
-            if freerow then begin
-                Inc(freelines);
-                if freelines>3 then exit;
+    for y:=yr downto 2 do begin
+        freerow := true;
+        for x:=0 to WELL_WIDTH-1 do begin
+            if ( board[x,y]=0 ) then begin
+                ClearSquare(x,y);
+            end else begin  
+                DrawSquare(x,y,board[x,y]);
+                freerow := false;
             end;
         end;
+        if freerow then begin
+            Inc(freelines);
+            if freelines>3 then exit;
+        end;
+    end;
+end;
+
+procedure DeleteRow(yr:byte);
+var x,y,freelines: byte;
+begin
+    freelines := 0;
+    for y:=yr downto 2 do begin
+        rowCount[y] := rowCount[y-1];
+        for x:=0 to WELL_WIDTH-1 do
+            board[x,y] := board[x,y-1];
+        if rowCount[y]=0 then begin
+            Inc(freelines);
+            if freelines>3 then exit;
+        end;
+    end;
 end;
 
 procedure CheckRows(yr:byte);
-var x,y,sfx: byte;
-    del: boolean;
+var x,y: byte;
     rows: array [0..3] of byte;
     i,linecount: byte;
     bonus:cardinal;
-    board_bak: array[0..WELL_WIDTH-1,0..WELL_HEIGHT-1] of byte;
 
 begin
     linecount := 0;
     for y:=yr to Min(yr+4, WELL_HEIGHT-1) do
         begin
-            del := true;
-
-            for x:=0 to WELL_WIDTH-1 do
-               if ( board[x,y]=0 )then del := false;
-
-            if del then
+            if rowCount[y] = WELL_WIDTH then
                 begin
                     rows[linecount]:=y;
                     inc(linecount);
@@ -145,7 +147,7 @@ begin
         
         // combo score
         if comboCounter>0 then begin
-            bonus := bonus + (50 * comboCounter * level);
+            bonus := bonus + (cardinal(50) * comboCounter * level);
         end;
         Inc(comboCounter);
         
@@ -175,11 +177,10 @@ begin
     // fall down rows
     for i:=1 to linecount do begin
         y:=rows[i-1];
-        board_bak:=board;
         DeleteRow(y);
-        board:=board_bak;
+        DrawRowsAfterDelete(y);
         SwapScreen;
-        DeleteRow(y);
+        DrawRowsAfterDelete(y);
         ShakeScreen;
     end;
 
@@ -205,11 +206,11 @@ procedure FastFall;
 var targetY: byte;
 begin
     // Wyczyść stare pozycje
-    DrawBlock(prevX1,prevY1,prevTile1,prevRotation1,0);
-    DrawBlock(prevX2,prevY2,prevTile2,prevRotation2,0);
+    ClearBlock(prevX1,prevY1,prevTile1,prevRotation1);
+    ClearBlock(prevX2,prevY2,prevTile2,prevRotation2);
     SwapScreen;
-    DrawBlock(prevX1,prevY1,prevTile1,prevRotation1,0);
-    DrawBlock(prevX2,prevY2,prevTile2,prevRotation2,0);
+    ClearBlock(prevX1,prevY1,prevTile1,prevRotation1);
+    ClearBlock(prevX2,prevY2,prevTile2,prevRotation2);
 
     // Znajdź docelową pozycję
     targetY := tileY;
@@ -218,9 +219,10 @@ begin
     tileY := targetY;
 
     // Narysuj klocek na obu ekranach
-    DrawBlock(tileX, tileY, currentTile, rotation, 1);
+    DrawBlock(tileX, tileY, currentTile, rotation);
     SwapScreen;
-    DrawBlock(tileX, tileY, currentTile, rotation, 1);
+    DrawBlock(tileX, tileY, currentTile, rotation);
 
+    pieceDirty := false;
     fallcounter := 0;
 end;

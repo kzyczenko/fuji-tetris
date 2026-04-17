@@ -28,6 +28,7 @@ const
 {$ENDIF}
 var
     board: array[0..WELL_WIDTH-1,0..WELL_HEIGHT-1] of byte;
+    rowCount: array[0..WELL_HEIGHT-1] of byte;
     score,topscore,previous_topscore: cardinal;
     lines2levelup: byte;
     levelLines: byte;
@@ -46,12 +47,15 @@ var
     poolsize: byte;
     s: string;
     spawnTile: boolean;
+    pieceDirty: boolean;
     comboCounter:byte;
     crackCounter:byte;
     joyStatus: byte;
     oldPalette: array[0..15] of word;
     oldRez: word;
     SCREEN_LOG, SCREEN_PHY, oldScreen: pword;
+    SCREEN_0, SCREEN_1: pword;
+    SCREEN_LOG_RAW, SCREEN_PHY_RAW: pword;
     pParamblk, pFnthdr, pFktadr: pword;
     quit: boolean;
  	vector_table: PKBDVECS;
@@ -69,6 +73,13 @@ var
     current_tune: byte;
     MUSIC: pointer;
     stats: array [0..6] of word = (0, 0, 0, 0, 0, 0, 0);
+    pauseBuffer: array [0..PAUSE_BUF_SIZE-1] of byte;
+    countersValid: array [0..1] of boolean;
+    statsValid: array [0..1] of boolean;
+    shownScore, shownTopscore: array [0..1] of cardinal;
+    shownTotalLines: array [0..1] of word;
+    shownLevel: array [0..1] of byte;
+    shownStats: array [0..1,0..6] of word;
     counter: word;
 
 {$i random.inc}
@@ -138,8 +149,12 @@ begin
     oldRez := xbios_getrez;
     SavePalette(@oldPalette[0]);
     oldScreen := xbios_logbase;
-    SCREEN_LOG := pointer(cardinal(gemdos_malloc(33280+256)) and $FFFFFF00 + 1280);
-    SCREEN_PHY := pointer(cardinal(gemdos_malloc(33280+256)) and $FFFFFF00 + 1280);
+    SCREEN_LOG_RAW := gemdos_malloc(33280+256);
+    SCREEN_PHY_RAW := gemdos_malloc(33280+256);
+    SCREEN_0 := pointer(((PtrUInt(SCREEN_LOG_RAW) + 255) and $FFFFFF00) + 1280);
+    SCREEN_1 := pointer(((PtrUInt(SCREEN_PHY_RAW) + 255) and $FFFFFF00) + 1280);
+    SCREEN_LOG := SCREEN_0;
+    SCREEN_PHY := SCREEN_1;
     ClearScreen(SCREEN_LOG);
     ClearScreen(SCREEN_PHY);
     xbios_setscreen(SCREEN_LOG, SCREEN_PHY, mode);
@@ -152,8 +167,8 @@ begin
     UnInstallJoy;
     xbios_setscreen(oldScreen, oldScreen, oldRez);
     xbios_setpalette(@oldPalette);
-    gemdos_mfree(SCREEN_LOG);
-    gemdos_mfree(SCREEN_PHY);
+    gemdos_mfree(SCREEN_LOG_RAW);
+    gemdos_mfree(SCREEN_PHY_RAW);
     gemdos_super(pointer(1));
 end;
 
@@ -165,7 +180,7 @@ begin
     levelLines := 0;
     totalLines := 0;
     ClrBoard;
-    DrawCounters;
+    ResetHudCache;
     poolsize := 0;
     nextTile := TossTile;
     spawnTile := true;
@@ -230,6 +245,7 @@ begin
                     prevX2 := tileX;
                     prevY2 := tileY;
                     nextTile := TossTile;
+                    pieceDirty := true;
                     DrawHUD;
                     SwapScreen;
                     DrawHUD;
@@ -241,13 +257,18 @@ begin
 
             // main steering loop
             repeat
-                DrawBlock(prevX1,prevY1,prevTile1,prevRotation1,0);
-                DrawBlock(prevX2,prevY2,prevTile2,prevRotation2,0);
-                DrawBlock(tileX,tileY,currentTile,rotation,1);
-                SwapScreen;
-                DrawBlock(prevX1,prevY1,prevTile1,prevRotation1,0);
-                DrawBlock(prevX2,prevY2,prevTile2,prevRotation2,0);
-                DrawBlock(tileX,tileY,currentTile,rotation,1);
+                if pieceDirty then begin
+                    ClearBlock(prevX1,prevY1,prevTile1,prevRotation1);
+                    ClearBlock(prevX2,prevY2,prevTile2,prevRotation2);
+                    DrawBlock(tileX,tileY,currentTile,rotation);
+                    SwapScreen;
+                    ClearBlock(prevX1,prevY1,prevTile1,prevRotation1);
+                    ClearBlock(prevX2,prevY2,prevTile2,prevRotation2);
+                    DrawBlock(tileX,tileY,currentTile,rotation);
+                    pieceDirty := false;
+                end else begin
+                    xbios_vsync;
+                end;
                 dec(fallcounter);
                 GetUserInput;
                 if key<>0 then begin
@@ -255,8 +276,14 @@ begin
                     prevY1 := tileY;
                     prevRotation1 := rotation;
                     prevTile1 := currentTile;
-                    if (key=KEY_LEFT) and CanMoveBlock(tileX-1,tileY,currentTile,rotation) then tileX := tileX-1;
-                    if (key=KEY_RIGHT) and CanMoveBlock(tileX+1,tileY,currentTile,rotation) then tileX := tileX+1;
+                    if (key=KEY_LEFT) and CanMoveBlock(tileX-1,tileY,currentTile,rotation) then begin
+                        tileX := tileX-1;
+                        pieceDirty := true;
+                    end;
+                    if (key=KEY_RIGHT) and CanMoveBlock(tileX+1,tileY,currentTile,rotation) then begin
+                        tileX := tileX+1;
+                        pieceDirty := true;
+                    end;
                     if (key=KEY_UP) then FastFall; // fall to bottom
                     if (key=KEY_DOWN) then fallcounter := 0; // fall one row
                     if (key=KEY_P) then PauseGame; // Pause
@@ -269,8 +296,14 @@ begin
                     prevY1 := tileY;
                     prevRotation1 := rotation;
                     prevTile1 := currentTile;
-                    if (actionKey=KEY_SPACE) and CanMoveBlock(tileX,tileY,currentTile,TPred(rotation)) then rotation := TPred(rotation);
-                    if (actionKey=KEY_ENTER) and CanMoveBlock(tileX,tileY,currentTile,TSucc(rotation)) then rotation := TSucc(rotation);
+                    if (actionKey=KEY_SPACE) and CanMoveBlock(tileX,tileY,currentTile,TPred(rotation)) then begin
+                        rotation := TPred(rotation);
+                        pieceDirty := true;
+                    end;
+                    if (actionKey=KEY_ENTER) and CanMoveBlock(tileX,tileY,currentTile,TSucc(rotation)) then begin
+                        rotation := TSucc(rotation);
+                        pieceDirty := true;
+                    end;
                 end;
                 if crackCounter>0 then begin
                     dec(crackCounter);
@@ -285,15 +318,17 @@ begin
 
             // check the floor
             if CanMoveBlock(tileX,byte(tileY+1),currentTile,rotation) then
-                tileY := byte(tileY+1)
+                begin
+                    tileY := byte(tileY+1);
+                    pieceDirty := true;
+                end
             else
                 begin // tile hits the ground
                     crackCounter := CRACK_SOUND_LENGTH;
-                    DrawBlock(tileX,tileY,currentTile,rotation,1);
-                    DrawBlock(tileX,tileY,currentTile,rotation,2);
+                    DrawBlock(tileX,tileY,currentTile,rotation);
+                    CommitBlock(tileX,tileY,currentTile,rotation);
                     SwapScreen;
-                    DrawBlock(tileX,tileY,currentTile,rotation,1);
-                    DrawBlock(tileX,tileY,currentTile,rotation,2);
+                    DrawBlock(tileX,tileY,currentTile,rotation);
                     SwapScreen;
                     CheckRows(tileY);
                     if tileY=0 then key := KEY_ESC // game over

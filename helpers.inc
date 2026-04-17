@@ -19,33 +19,44 @@ end;
 
 function GetPaddedInt(i:cardinal; p:byte): string;
 var
-    tmp: string;
+    tmp, padded: string;
     o, tlen: byte;
 begin
     str(i, tmp);                           // konwersja liczby -> string
     tlen := Length(tmp);                   // <-- zapamiętaj raz, nie obliczaj dwa razy
-    SetLength(GetPaddedInt, p);
-    FillChar(GetPaddedInt[1], p, '0');     // wypełnij zerami
-    o := p - tlen;
-    Move(tmp[1], GetPaddedInt[o+1], tlen); // skopiuj cyfry na właściwe miejsce
+    if tlen >= p then begin
+        GetPaddedInt := Copy(tmp, tlen - p + 1, p);
+    end else begin
+        padded := '';
+        SetLength(padded, p);
+        FillChar(padded[1], p, '0');       // wypełnij zerami
+        o := p - tlen;
+        Move(tmp[1], padded[o+1], tlen);   // skopiuj cyfry na właściwe miejsce
+        GetPaddedInt := padded;
+    end;
 end;
 
 procedure LoadTopScore;
-var handle, error: longint;
+var handle: longint;
 begin
     handle := gemdos_fopen('tetris.hsc', 0);
-    if (handle > 0) then gemdos_fread(handle, 4, @topscore) else topscore:=1000;
+    if (handle > 0) then begin
+        gemdos_fread(handle, 4, @topscore);
+        gemdos_fclose(handle);
+    end else begin
+        topscore:=1000;
+    end;
     previous_topscore:=topscore;
-    gemdos_fclose(handle);
 end;
 
 procedure SaveTopScore;
 var handle: longint;
 begin
-    gemdos_fcreate('tetris.hsc',0);
-    handle := gemdos_fopen('tetris.hsc', 1);
-    gemdos_fwrite(handle, 4, @topscore);
-    gemdos_fclose(handle);
+    handle := gemdos_fcreate('tetris.hsc',0);
+    if (handle > 0) then begin
+        gemdos_fwrite(handle, 4, @topscore);
+        gemdos_fclose(handle);
+    end;
 end;
 
 procedure Pause(count: word);

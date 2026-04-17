@@ -6,8 +6,6 @@ palette: array [0..15] of word = (
 );
 
 procedure LoadPalette;
-var c:byte;
 begin
     xbios_setpalette(@palette);
 end;
-
