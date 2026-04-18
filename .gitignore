@@ -1,8 +1,21 @@
 .vscode
 storage
 memory.dump
-*.lst
-*.a65
+
+# Build outputs
+*.o
+*.prg
+*.tos
+*.ppu
+*.map
+tetris.s
+link*.res
+ppas.sh
+
+# Runtime data
+tetris.hsc
+
+# GNU Global tags
 GPATH
 GTAGS
 GRTAGS
