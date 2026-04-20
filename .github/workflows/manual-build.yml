@@ -34,6 +34,7 @@ jobs:
         shell: bash
         run: |
           set -eux
+          apt install -y python3-pip python3-setuptools
           make
           make ste
 
