@@ -1,9 +1,18 @@
 PPC = ppcross68k
 AS = vasmm68k_mot
+PYTHON = python3
 
 TARGET = tetris.prg
 STE_TARGET = tetriste.prg
 MAIN = tetris.pas
+SFX_INC = msx/sfx.inc
+SFX_RAW = \
+	msx/drop.raw \
+	msx/rotate.raw \
+	msx/1shake.raw \
+	msx/2shake.raw \
+	msx/3shake.raw \
+	msx/4shake.raw
 
 PFLAGS = -Tatari -O2 -Si -Xs
 HATARI = hatari
@@ -57,12 +66,7 @@ STE_SOURCES = \
 	msx/hmusic2.inc \
 	msx/hmusic3.inc \
 	msx/hmusice.inc \
-	msx/drop.raw \
-	msx/rotate.raw \
-	msx/1shake.raw \
-	msx/2shake.raw \
-	msx/3shake.raw \
-	msx/4shake.raw \
+	$(SFX_INC) \
 	graphics.o \
 	sndhisr.o \
 	unapl.o \
@@ -94,6 +98,9 @@ vbl.o: vbl.s
 
 dmasound.o: dmasound.s
 	$(AS) -quiet -Faout -o $@ $<
+
+$(SFX_INC): $(SFX_RAW) tools/raw2pas.py
+	$(PYTHON) tools/raw2pas.py . $@
 
 ste: $(STE_TARGET)
 
